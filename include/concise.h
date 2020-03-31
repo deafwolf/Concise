@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <queue>
+#include <cstring>
 
 #include "conciseutil.h"
 
