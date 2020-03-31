@@ -823,48 +823,41 @@ public:
   size_t write(char *buf) const {
     char *origin = buf;
 
-    std::memcpy(buf, &last, sizeof(last));
+    *((int32_t *)buf) = last;
     buf += sizeof(last);
 
-    std::memcpy(buf, &lastWordIndex, sizeof(lastWordIndex));
+    *((int32_t *)buf) = lastWordIndex;
     buf += sizeof(lastWordIndex);
 
     const size_t vec_size = words.size();
-    std::memcpy(buf, &vec_size, sizeof(vec_size));
+    *((size_t *)buf) = vec_size;
     buf += sizeof(vec_size);
 
-    for (auto word : words) {
-      std::memcpy(buf, &word, sizeof(word));
-      buf += sizeof(uint32_t);
-    }
-
+    const size_t total = sizeof(uint32_t) * vec_size;
+    std::memcpy(buf, words.data(), total);
+    buf += total;
     return buf - origin;
   }
 
   static bool read(const char *buf, size_t bytes, ConciseSet &cs) {
     const char *origin = buf;
 
-    std::memcpy(&cs.last, buf, sizeof(last));
+    cs.last = *((int32_t *)buf);
     buf += sizeof(last);
 
-    std::memcpy(&cs.lastWordIndex, buf, sizeof(lastWordIndex));
+    cs.lastWordIndex = *((int32_t *)buf);
     buf += sizeof(lastWordIndex);
 
-    size_t vec_size;
-    std::memcpy(&vec_size, buf, sizeof(vec_size));
+    size_t vec_size = *((size_t *)buf);
     buf += sizeof(vec_size);
 
     if (bytes - (buf - origin) != vec_size * sizeof(uint32_t)) {
       return false;
     }
 
-    for (size_t i = 0; i < vec_size; ++i) {
-      uint32_t v;
-      memcpy(&v, buf, sizeof(uint32_t));
-      cs.words.push_back(v);
-      buf += sizeof(uint32_t);
-    }
-
+    const uint32_t *vec_start = (uint32_t *)buf;
+    cs.words =
+        std::move(std::vector<uint32_t>(vec_start, vec_start + vec_size));
     return true;
   }
 
